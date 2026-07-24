@@ -1,0 +1,65 @@
+<view class="container">
+  <view class="form-card">
+    <text class="form-title">添加费用</text>
+
+    <!-- 费用类型 -->
+    <view class="form-section">
+      <text class="section-label">费用类型</text>
+      <view class="type-grid">
+        <view class="type-btn {{type === 'fuel' ? 'active' : ''}}" bindtap="setType" data-type="fuel">
+          <text class="type-icon">⛽</text>
+          <text class="type-text">加油</text>
+        </view>
+        <view class="type-btn {{type === 'maintenance' ? 'active' : ''}}" bindtap="setType" data-type="maintenance">
+          <text class="type-icon">🔧</text>
+          <text class="type-text">维修</text>
+        </view>
+        <view class="type-btn {{type === 'purchase' ? 'active' : ''}}" bindtap="setType" data-type="purchase">
+          <text class="type-icon">🚗</text>
+          <text class="type-text">购车</text>
+        </view>
+        <view class="type-btn {{type === 'paperwork' ? 'active' : ''}}" bindtap="setType" data-type="paperwork">
+          <text class="type-icon"></text>
+          <text class="type-text">手续</text>
+        </view>
+        <view class="type-btn {{type === 'insurance' ? 'active' : ''}}" bindtap="setType" data-type="insurance">
+          <text class="type-icon">🛡️</text>
+          <text class="type-text">保险费</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 金额 -->
+    <view class="form-section">
+      <text class="section-label">金额 (฿)</text>
+      <input class="form-input" type="digit" placeholder="请输入金额" value="{{amount}}" bindinput="onAmountInput" />
+    </view>
+
+    <!-- 描述 -->
+    <view class="form-section">
+      <text class="section-label">描述</text>
+      <input class="form-input" placeholder="请输入描述（可选）" value="{{description}}" bindinput="onDescInput" />
+    </view>
+
+    <!-- 里程 -->
+    <view class="form-section">
+      <text class="section-label">里程 (km)</text>
+      <input class="form-input" type="number" placeholder="请输入里程（可选）" value="{{mileage}}" bindinput="onMileageInput" />
+    </view>
+
+    <!-- 日期 -->
+    <view class="form-section">
+      <text class="section-label">日期</text>
+      <picker mode="date" value="{{expenseDate}}" bindchange="onDateChange">
+        <view class="form-input picker-input">
+          <text>{{expenseDate || '请选择日期'}}</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 提交按钮 -->
+    <button class="submit-btn {{submitting ? 'disabled' : ''}}" bindtap="submit" disabled="{{submitting}}">
+      <text>{{submitting ? '提交中...' : '保存'}}</text>
+    </button>
+  </view>
+</view>

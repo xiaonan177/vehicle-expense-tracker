@@ -1,0 +1,64 @@
+<view class="container">
+  <!-- 筛选栏 -->
+  <view class="filter-bar">
+    <view class="filter-item {{filterType === 'all' ? 'active' : ''}}" bindtap="setFilter" data-type="all">
+      <text>全部</text>
+    </view>
+    <view class="filter-item {{filterType === 'fuel' ? 'active' : ''}}" bindtap="setFilter" data-type="fuel">
+      <text>加油</text>
+    </view>
+    <view class="filter-item {{filterType === 'maintenance' ? 'active' : ''}}" bindtap="setFilter" data-type="maintenance">
+      <text>维修</text>
+    </view>
+    <view class="filter-item {{filterType === 'purchase' ? 'active' : ''}}" bindtap="setFilter" data-type="purchase">
+      <text>购车</text>
+    </view>
+    <view class="filter-item {{filterType === 'paperwork' ? 'active' : ''}}" bindtap="setFilter" data-type="paperwork">
+      <text>手续</text>
+    </view>
+    <view class="filter-item {{filterType === 'insurance' ? 'active' : ''}}" bindtap="setFilter" data-type="insurance">
+      <text>保险费</text>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:elif="{{expenses.length === 0}}" class="empty-state">
+    <text class="empty-icon">📭</text>
+    <text class="empty-text">暂无费用记录</text>
+  </view>
+
+  <!-- 费用列表 -->
+  <view wx:else class="expense-list">
+    <view wx:for="{{expenses}}" wx:key="id" class="expense-card">
+      <view class="expense-header">
+        <view class="expense-type-badge" style="background: {{item.type === 'fuel' ? '#EFF6FF' : item.type === 'maintenance' ? '#FFFBEB' : item.type === 'purchase' ? '#EEF2FF' : item.type === 'paperwork' ? '#F5F3FF' : '#ECFDF5'}};">
+          <text>{{item.type === 'fuel' ? '' : item.type === 'maintenance' ? '' : item.type === 'purchase' ? '🚗' : item.type === 'paperwork' ? '' : '🛡️'}}</text>
+          <text class="type-label">{{item.type === 'fuel' ? '加油' : item.type === 'maintenance' ? '维修' : item.type === 'purchase' ? '购车' : item.type === 'paperwork' ? '手续' : '保险费'}}</text>
+        </view>
+        <text class="expense-amount">{{item.amount}}</text>
+      </view>
+      <view class="expense-body">
+        <text class="expense-desc">{{item.description || '无描述'}}</text>
+        <view class="expense-meta">
+          <text class="expense-date">{{item.expense_date}}</text>
+          <text wx:if="{{item.mileage}}" class="expense-mileage">{{item.mileage}} km</text>
+        </view>
+      </view>
+      <view class="expense-actions">
+        <view class="action-btn delete" bindtap="deleteExpense" data-id="{{item.id}}">
+          <text>删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 浮动按钮 -->
+  <view class="fab" bindtap="goToAdd">
+    <text>+</text>
+  </view>
+</view>

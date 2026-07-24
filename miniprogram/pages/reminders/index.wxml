@@ -1,0 +1,47 @@
+<view class="container">
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:elif="{{reminders.length === 0}}" class="empty-state">
+    <text class="empty-icon">🔔</text>
+    <text class="empty-text">暂无提醒</text>
+  </view>
+
+  <!-- 提醒列表 -->
+  <view wx:else class="reminder-list">
+    <view wx:for="{{reminders}}" wx:key="id" class="reminder-card {{item.is_completed ? 'completed' : ''}}">
+      <view class="reminder-header">
+        <view class="reminder-type-badge" style="background: {{item.type === 'fuel' ? '#EFF6FF' : item.type === 'maintenance' ? '#FFFBEB' : item.type === 'inspection' ? '#FEF2F2' : item.type === 'insurance' ? '#ECFDF5' : '#F5F3FF'}};">
+          <text>{{item.type === 'fuel' ? '' : item.type === 'maintenance' ? '' : item.type === 'inspection' ? '' : item.type === 'insurance' ? '🛡️' : '🔩'}}</text>
+          <text class="type-label">{{item.type === 'fuel' ? '加油' : item.type === 'maintenance' ? '维修' : item.type === 'inspection' ? '' : item.type === 'insurance' ? '保险' : '保养'}}</text>
+        </view>
+        <view class="reminder-actions">
+          <view class="action-btn complete" bindtap="toggleComplete" data-id="{{item.id}}">
+            <text>{{item.is_completed ? '恢复' : '完成'}}</text>
+          </view>
+          <view class="action-btn delete" bindtap="deleteReminder" data-id="{{item.id}}">
+            <text>删除</text>
+          </view>
+        </view>
+      </view>
+      <view class="reminder-body">
+        <text class="reminder-title">{{item.title}}</text>
+        <text wx:if="{{item.notes}}" class="reminder-notes">{{item.notes}}</text>
+        <view class="reminder-footer">
+          <text class="reminder-date">到期：{{item.due_date}}</text>
+          <view class="reminder-badge {{item.days_remaining <= 7 ? 'urgent' : item.days_remaining <= 30 ? 'warning' : 'normal'}}">
+            <text>{{item.days_remaining}}天</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 浮动按钮 -->
+  <view class="fab" bindtap="goToAdd">
+    <text>+</text>
+  </view>
+</view>

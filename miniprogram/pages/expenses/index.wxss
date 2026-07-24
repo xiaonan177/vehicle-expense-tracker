@@ -1,0 +1,123 @@
+/* 费用列表页样式 */
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 32rpx;
+  padding: 16rpx 0;
+}
+
+.filter-item {
+  padding: 12rpx 24rpx;
+  border-radius: 24rpx;
+  background: var(--color-card);
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  box-shadow: 0 2rpx 8rpx rgba(30, 58, 95, 0.06);
+}
+
+.filter-item.active {
+  background: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.loading {
+  text-align: center;
+  padding: 120rpx 0;
+  color: var(--color-text-secondary);
+}
+
+.expense-list {
+  padding-bottom: 120rpx;
+}
+
+.expense-card {
+  background: var(--color-card);
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(30, 58, 95, 0.08);
+}
+
+.expense-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.expense-type-badge {
+  display: flex;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+}
+
+.type-label {
+  margin-left: 8rpx;
+  font-weight: 500;
+}
+
+.expense-amount {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.expense-body {
+  margin-bottom: 16rpx;
+}
+
+.expense-desc {
+  font-size: 28rpx;
+  color: var(--color-text);
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.expense-meta {
+  display: flex;
+  gap: 24rpx;
+}
+
+.expense-date, .expense-mileage {
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+}
+
+.expense-actions {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1rpx solid var(--color-border);
+  padding-top: 16rpx;
+}
+
+.action-btn {
+  padding: 8rpx 20rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+}
+
+.action-btn.delete {
+  color: var(--color-danger);
+  background: #FEF2F2;
+}
+
+.fab {
+  position: fixed;
+  right: 40rpx;
+  bottom: 120rpx;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1E3A5F, #2D5A8E);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  box-shadow: 0 8rpx 24rpx rgba(30, 58, 95, 0.3);
+  z-index: 100;
+}

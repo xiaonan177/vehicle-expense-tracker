@@ -1,0 +1,59 @@
+<view class="container">
+  <view class="form-card">
+    <text class="form-title">添加提醒</text>
+
+    <!-- 提醒类型 -->
+    <view class="form-section">
+      <text class="section-label">提醒类型</text>
+      <view class="type-grid">
+        <view class="type-btn {{type === 'fuel' ? 'active' : ''}}" bindtap="setType" data-type="fuel">
+          <text class="type-icon">⛽</text>
+          <text class="type-text">加油</text>
+        </view>
+        <view class="type-btn {{type === 'maintenance' ? 'active' : ''}}" bindtap="setType" data-type="maintenance">
+          <text class="type-icon">🔧</text>
+          <text class="type-text">维修</text>
+        </view>
+        <view class="type-btn {{type === '保养' ? 'active' : ''}}" bindtap="setType" data-type="保养">
+          <text class="type-icon"></text>
+          <text class="type-text">保养</text>
+        </view>
+        <view class="type-btn {{type === 'insurance' ? 'active' : ''}}" bindtap="setType" data-type="insurance">
+          <text class="type-icon">🛡️</text>
+          <text class="type-text">保险</text>
+        </view>
+        <view class="type-btn {{type === 'inspection' ? 'active' : ''}}" bindtap="setType" data-type="inspection">
+          <text class="type-icon"></text>
+          <text class="type-text">年检</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 标题 -->
+    <view class="form-section">
+      <text class="section-label">标题</text>
+      <input class="form-input" placeholder="请输入提醒标题" value="{{title}}" bindinput="onTitleInput" />
+    </view>
+
+    <!-- 到期日期 -->
+    <view class="form-section">
+      <text class="section-label">到期日期</text>
+      <picker mode="date" value="{{dueDate}}" bindchange="onDateChange">
+        <view class="form-input picker-input">
+          <text>{{dueDate || '请选择日期'}}</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 备注 -->
+    <view class="form-section">
+      <text class="section-label">备注</text>
+      <textarea class="form-textarea" placeholder="请输入备注（可选）" value="{{notes}}" bindinput="onNotesInput" />
+    </view>
+
+    <!-- 提交按钮 -->
+    <button class="submit-btn {{submitting ? 'disabled' : ''}}" bindtap="submit" disabled="{{submitting}}">
+      <text>{{submitting ? '提交中...' : '保存'}}</text>
+    </button>
+  </view>
+</view>

@@ -1,0 +1,61 @@
+<view class="container">
+  <!-- 分类筛选 -->
+  <view class="filter-bar">
+    <view class="filter-item {{filterCategory === 'all' ? 'active' : ''}}" bindtap="setFilter" data-category="all">
+      <text>全部</text>
+    </view>
+    <view class="filter-item {{filterCategory === 'photo' ? 'active' : ''}}" bindtap="setFilter" data-category="photo">
+      <text>照片</text>
+    </view>
+    <view class="filter-item {{filterCategory === 'license' ? 'active' : ''}}" bindtap="setFilter" data-category="license">
+      <text>行驶证</text>
+    </view>
+    <view class="filter-item {{filterCategory === 'insurance' ? 'active' : ''}}" bindtap="setFilter" data-category="insurance">
+      <text>保险单</text>
+    </view>
+    <view class="filter-item {{filterCategory === 'maintenance' ? 'active' : ''}}" bindtap="setFilter" data-category="maintenance">
+      <text>维修记录</text>
+    </view>
+    <view class="filter-item {{filterCategory === 'other' ? 'active' : ''}}" bindtap="setFilter" data-category="other">
+      <text>其他</text>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:elif="{{files.length === 0}}" class="empty-state">
+    <text class="empty-icon">📁</text>
+    <text class="empty-text">暂无文件</text>
+    <text class="empty-hint">点击下方按钮上传文件</text>
+  </view>
+
+  <!-- 文件列表 -->
+  <view wx:else class="file-list">
+    <view wx:for="{{files}}" wx:key="id" class="file-card">
+      <view class="file-preview" bindtap="previewFile" data-url="{{item.url}}" data-type="{{item.file_type}}">
+        <image wx:if="{{item.file_type === 'image'}}" class="file-image" src="{{item.url}}" mode="aspectFill" />
+        <view wx:else class="file-icon">
+          <text>📄</text>
+        </view>
+      </view>
+      <view class="file-info">
+        <text class="file-name">{{item.name}}</text>
+        <text class="file-meta">{{item.category}} · {{item.created_at}}</text>
+      </view>
+      <view class="file-actions">
+        <view class="action-btn delete" bindtap="deleteFile" data-id="{{item.id}}">
+          <text>删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 上传按钮 -->
+  <view class="fab" bindtap="chooseFile">
+    <text>+</text>
+  </view>
+</view>

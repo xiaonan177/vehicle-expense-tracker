@@ -1,0 +1,51 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/expenses/index",
+    "pages/expenses/add",
+    "pages/files/index",
+    "pages/reminders/index",
+    "pages/reminders/add"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#1E3A5F",
+    "navigationBarTitleText": "车辆管家",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F0F4F8"
+  },
+  "tabBar": {
+    "color": "#94A3B8",
+    "selectedColor": "#1E3A5F",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/home.png",
+        "selectedIconPath": "images/home-active.png"
+      },
+      {
+        "pagePath": "pages/expenses/index",
+        "text": "费用",
+        "iconPath": "images/expenses.png",
+        "selectedIconPath": "images/expenses-active.png"
+      },
+      {
+        "pagePath": "pages/files/index",
+        "text": "文件",
+        "iconPath": "images/files.png",
+        "selectedIconPath": "images/files-active.png"
+      },
+      {
+        "pagePath": "pages/reminders/index",
+        "text": "提醒",
+        "iconPath": "images/reminders.png",
+        "selectedIconPath": "images/reminders-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}
