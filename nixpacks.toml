@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm"]
+
+[phases.install]
+cmds = ["cd server && pnpm install --prod"]
+
+[phases.build]
+cmds = ["cd server && pnpm build"]
+
+[start]
+cmd = "cd server && pnpm start"

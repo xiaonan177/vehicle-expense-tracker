@@ -1,0 +1,8 @@
+client/
+miniprogram/
+node_modules/
+.git/
+*.md
+.DS_Store
+.cozeproj/
+.coze
