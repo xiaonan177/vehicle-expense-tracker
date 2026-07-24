@@ -141,9 +141,9 @@ export default function AddExpenseScreen() {
 
           {/* Amount Input */}
           <View style={styles.amountCard}>
-            <Text style={styles.amountLabel}>金额 (元)</Text>
+            <Text style={styles.amountLabel}>金额 (泰铢)</Text>
             <View style={styles.amountInputRow}>
-              <Text style={styles.currencySign}>¥</Text>
+              <Text style={styles.currencySign}>฿</Text>
               <TextInput
                 style={styles.amountInput}
                 placeholder="0.00"

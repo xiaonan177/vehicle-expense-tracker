@@ -16,29 +16,30 @@ import { useSafeRouter } from "@/hooks/useSafeRouter";
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL;
 
-interface Vehicle {
-  id: number;
-  name: string;
-  plate_number: string;
-  brand: string;
-  model: string;
+interface MonthlyData {
+  fuel: number;
+  maintenance: number;
+  count: number;
 }
 
-interface ExpenseStats {
+interface MonthlyStats {
+  year: number;
   total_fuel: number;
   total_maintenance: number;
   total_amount: number;
   total_count: number;
+  monthly: Record<number, MonthlyData>;
 }
 
 interface Reminder {
   id: number;
-  vehicle_id: number;
   type: string;
   title: string;
   due_date: string;
   is_completed: boolean;
 }
+
+const MONTH_NAMES = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
 
 const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
   fuel: { label: "加油", color: "#F59E0B", bg: "rgba(245,158,11,0.12)", icon: "gas-pump" },
@@ -56,39 +57,37 @@ function getDaysUntil(dateStr: string): number {
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+function formatCurrency(amount: number): string {
+  return `฿${amount.toLocaleString("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useSafeRouter();
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [stats, setStats] = useState<ExpenseStats>({ total_fuel: 0, total_maintenance: 0, total_amount: 0, total_count: 0 });
+  const [stats, setStats] = useState<MonthlyStats | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"year" | "month">("year");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [vehiclesRes, statsRes, remindersRes] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/vehicles`),
-        fetch(`${API_BASE}/api/v1/expenses/stats${selectedVehicleId ? `?vehicle_id=${selectedVehicleId}` : ""}`),
+      const [statsRes, remindersRes] = await Promise.all([
+        fetch(`${API_BASE}/api/v1/expenses/monthly-stats?year=${selectedYear}`),
         fetch(`${API_BASE}/api/v1/reminders?is_completed=false`),
       ]);
-      const vehiclesData = await vehiclesRes.json();
       const statsData = await statsRes.json();
       const remindersData = await remindersRes.json();
-
-      setVehicles(vehiclesData);
       setStats(statsData);
       setReminders(remindersData);
-      if (vehiclesData.length > 0 && !selectedVehicleId) {
-        setSelectedVehicleId(vehiclesData[0].id);
-      }
     } catch (err) {
       console.error("Failed to fetch data:", err);
     } finally {
       setLoading(false);
     }
-  }, [selectedVehicleId]);
+  }, [selectedYear]);
 
   useFocusEffect(
     useCallback(() => {
@@ -99,7 +98,14 @@ export default function HomeScreen() {
   const upcomingReminders = reminders
     .filter((r) => !r.is_completed)
     .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
-    .slice(0, 5);
+    .slice(0, 4);
+
+  // Get current view data
+  const currentMonthData = stats?.monthly?.[selectedMonth] || { fuel: 0, maintenance: 0, count: 0 };
+  const displayFuel = viewMode === "year" ? (stats?.total_fuel || 0) : currentMonthData.fuel;
+  const displayMaintenance = viewMode === "year" ? (stats?.total_maintenance || 0) : currentMonthData.maintenance;
+  const displayTotal = viewMode === "year" ? (stats?.total_amount || 0) : (currentMonthData.fuel + currentMonthData.maintenance);
+  const displayCount = viewMode === "year" ? (stats?.total_count || 0) : currentMonthData.count;
 
   if (loading) {
     return (
@@ -124,73 +130,180 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={[styles.headerArea, { paddingTop: insets.top + 16 }]}>
           <Text style={styles.pageTitle}>车辆管家</Text>
-          <Text style={styles.pageSubtitle}>费用统计与到期提醒</Text>
+          <Text style={styles.pageSubtitle}>加油费用看板</Text>
         </View>
 
-        {/* Vehicle Selector */}
-        {vehicles.length > 0 && (
-          <View style={styles.section}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 20 }}>
-              {vehicles.map((v) => (
+        {/* Year / Month Toggle */}
+        <View style={styles.section}>
+          <View style={styles.toggleRow}>
+            <TouchableOpacity
+              style={[styles.toggleBtn, viewMode === "year" && styles.toggleBtnActive]}
+              onPress={() => setViewMode("year")}
+              activeOpacity={0.7}
+            >
+              <FontAwesome6 name="calendar" size={14} color={viewMode === "year" ? "#FFFFFF" : "#64748B"} />
+              <Text style={[styles.toggleText, viewMode === "year" && styles.toggleTextActive]}>
+                {selectedYear}年
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toggleBtn, viewMode === "month" && styles.toggleBtnActive]}
+              onPress={() => setViewMode("month")}
+              activeOpacity={0.7}
+            >
+              <FontAwesome6 name="calendar-day" size={14} color={viewMode === "month" ? "#FFFFFF" : "#64748B"} />
+              <Text style={[styles.toggleText, viewMode === "month" && styles.toggleTextActive]}>
+                {selectedMonth}月
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Month selector for month view */}
+          {viewMode === "month" && (
+            <View style={styles.monthSelector}>
+              {MONTH_NAMES.map((name, idx) => (
                 <TouchableOpacity
-                  key={v.id}
-                  style={[styles.vehicleChip, selectedVehicleId === v.id && styles.vehicleChipActive]}
-                  onPress={() => setSelectedVehicleId(v.id)}
+                  key={idx}
+                  style={[styles.monthChip, selectedMonth === idx + 1 && styles.monthChipActive]}
+                  onPress={() => setSelectedMonth(idx + 1)}
                   activeOpacity={0.7}
                 >
-                  <FontAwesome6
-                    name="car"
-                    size={14}
-                    color={selectedVehicleId === v.id ? "#FFFFFF" : "#64748B"}
-                  />
                   <Text
-                    style={[
-                      styles.vehicleChipText,
-                      selectedVehicleId === v.id && styles.vehicleChipTextActive,
-                    ]}
+                    style={[styles.monthChipText, selectedMonth === idx + 1 && styles.monthChipTextActive]}
                   >
-                    {v.name}
+                    {name}
                   </Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
-          </View>
-        )}
+            </View>
+          )}
 
-        {/* Expense Overview Cards */}
+          {/* Year selector for year view */}
+          {viewMode === "year" && (
+            <View style={styles.yearSelector}>
+              {[selectedYear - 1, selectedYear, selectedYear + 1].map((y) => (
+                <TouchableOpacity
+                  key={y}
+                  style={[styles.yearChip, y === selectedYear && styles.yearChipActive]}
+                  onPress={() => setSelectedYear(y)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.yearChipText, y === selectedYear && styles.yearChipTextActive]}>
+                    {y}年
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Main Fuel Dashboard Card */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>费用概览</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <View style={[styles.statIconWrap, { backgroundColor: "rgba(245,158,11,0.12)" }]}>
-                <FontAwesome6 name="gas-pump" size={20} color="#F59E0B" />
+          <View style={styles.mainCard}>
+            <View style={styles.mainCardHeader}>
+              <View style={styles.mainCardIconWrap}>
+                <FontAwesome6 name="gas-pump" size={22} color="#FFFFFF" />
               </View>
-              <Text style={styles.statLabel}>加油花费</Text>
-              <Text style={[styles.statValue, { color: "#F59E0B" }]}>
-                ¥{stats.total_fuel.toFixed(0)}
+              <Text style={styles.mainCardTitle}>
+                {viewMode === "year" ? `${selectedYear}年度加油` : `${selectedMonth}月加油`}
               </Text>
             </View>
-            <View style={styles.statCard}>
-              <View style={[styles.statIconWrap, { backgroundColor: "rgba(37,99,235,0.12)" }]}>
-                <FontAwesome6 name="wrench" size={20} color="#2563EB" />
+            <Text style={styles.mainCardValue}>{formatCurrency(displayFuel)}</Text>
+            <View style={styles.mainCardSubRow}>
+              <View style={styles.mainCardSubItem}>
+                <Text style={styles.mainCardSubLabel}>维修花费</Text>
+                <Text style={styles.mainCardSubValue}>{formatCurrency(displayMaintenance)}</Text>
               </View>
-              <Text style={styles.statLabel}>维修花费</Text>
-              <Text style={[styles.statValue, { color: "#2563EB" }]}>
-                ¥{stats.total_maintenance.toFixed(0)}
-              </Text>
-            </View>
-          </View>
-          {/* Total Card */}
-          <View style={styles.totalCard}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <View>
-                <Text style={styles.totalLabel}>总花费</Text>
-                <Text style={styles.totalSubLabel}>共 {stats.total_count} 笔记录</Text>
+              <View style={styles.mainCardDivider} />
+              <View style={styles.mainCardSubItem}>
+                <Text style={styles.mainCardSubLabel}>总记录</Text>
+                <Text style={styles.mainCardSubValue}>{displayCount} 笔</Text>
               </View>
-              <Text style={styles.totalValue}>¥{stats.total_amount.toFixed(2)}</Text>
             </View>
           </View>
         </View>
+
+        {/* Monthly Bar Chart (Year View) */}
+        {viewMode === "year" && stats && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>月度加油趋势</Text>
+            <View style={styles.chartCard}>
+              {(() => {
+                const maxFuel = Math.max(...Object.values(stats.monthly).map((m) => m.fuel), 1);
+                return (
+                  <View style={styles.chartContainer}>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+                      const data = stats.monthly[m];
+                      const barHeight = Math.max((data.fuel / maxFuel) * 100, 4);
+                      const isCurrentMonth = m === new Date().getMonth() + 1 && stats.year === new Date().getFullYear();
+                      return (
+                        <TouchableOpacity
+                          key={m}
+                          style={styles.chartBarWrap}
+                          onPress={() => {
+                            setSelectedMonth(m);
+                            setViewMode("month");
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.chartBarContainer}>
+                            <View
+                              style={[
+                                styles.chartBar,
+                                { height: barHeight },
+                                isCurrentMonth && styles.chartBarCurrent,
+                              ]}
+                            />
+                          </View>
+                          <Text style={[styles.chartLabel, isCurrentMonth && styles.chartLabelCurrent]}>
+                            {m}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                );
+              })()}
+            </View>
+          </View>
+        )}
+
+        {/* Month Detail (Month View) */}
+        {viewMode === "month" && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{selectedMonth}月费用明细</Text>
+            <View style={styles.detailRow}>
+              <View style={styles.detailCard}>
+                <View style={[styles.detailIconWrap, { backgroundColor: "rgba(245,158,11,0.12)" }]}>
+                  <FontAwesome6 name="gas-pump" size={18} color="#F59E0B" />
+                </View>
+                <Text style={styles.detailLabel}>加油</Text>
+                <Text style={[styles.detailValue, { color: "#F59E0B" }]}>
+                  {formatCurrency(currentMonthData.fuel)}
+                </Text>
+              </View>
+              <View style={styles.detailCard}>
+                <View style={[styles.detailIconWrap, { backgroundColor: "rgba(37,99,235,0.12)" }]}>
+                  <FontAwesome6 name="wrench" size={18} color="#2563EB" />
+                </View>
+                <Text style={styles.detailLabel}>维修</Text>
+                <Text style={[styles.detailValue, { color: "#2563EB" }]}>
+                  {formatCurrency(currentMonthData.maintenance)}
+                </Text>
+              </View>
+            </View>
+            {/* Total for month */}
+            <View style={styles.monthTotalCard}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <View>
+                  <Text style={styles.monthTotalLabel}>{selectedMonth}月总花费</Text>
+                  <Text style={styles.monthTotalSub}>{currentMonthData.count} 笔记录</Text>
+                </View>
+                <Text style={styles.monthTotalValue}>{formatCurrency(displayTotal)}</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Upcoming Reminders */}
         <View style={styles.section}>
@@ -247,17 +360,6 @@ export default function HomeScreen() {
             })
           )}
         </View>
-
-        {/* No Vehicle Prompt */}
-        {vehicles.length === 0 && (
-          <View style={styles.section}>
-            <View style={styles.emptyCard}>
-              <FontAwesome6 name="car-side" size={32} color="#B2BEC3" />
-              <Text style={styles.emptyText}>还没有添加车辆</Text>
-              <Text style={styles.emptySubText}>请先添加一辆车辆开始使用</Text>
-            </View>
-          </View>
-        )}
       </ScrollView>
     </Screen>
   );
@@ -278,6 +380,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#64748B",
     marginTop: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   section: {
     paddingHorizontal: 20,
@@ -300,37 +407,204 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#2563EB",
   },
-  vehicleChip: {
+  // Toggle
+  toggleRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+  },
+  toggleBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 9999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
     backgroundColor: "#FFFFFF",
     gap: 6,
     shadowColor: "#94A3B8",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     ...(Platform.OS === "android" && { elevation: 2 }),
   },
-  vehicleChipActive: {
+  toggleBtnActive: {
     backgroundColor: "#2563EB",
   },
-  vehicleChipText: {
+  toggleText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  toggleTextActive: {
+    color: "#FFFFFF",
+  },
+  // Month selector
+  monthSelector: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 4,
+  },
+  monthChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#94A3B8",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    ...(Platform.OS === "android" && { elevation: 1 }),
+  },
+  monthChipActive: {
+    backgroundColor: "#2563EB",
+  },
+  monthChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  monthChipTextActive: {
+    color: "#FFFFFF",
+  },
+  // Year selector
+  yearSelector: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 4,
+  },
+  yearChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#94A3B8",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    ...(Platform.OS === "android" && { elevation: 1 }),
+  },
+  yearChipActive: {
+    backgroundColor: "#2563EB",
+  },
+  yearChipText: {
     fontSize: 13,
     fontWeight: "600",
     color: "#64748B",
   },
-  vehicleChipTextActive: {
+  yearChipTextActive: {
     color: "#FFFFFF",
   },
-  statsRow: {
+  // Main card
+  mainCard: {
+    backgroundColor: "#2563EB",
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    ...(Platform.OS === "android" && { elevation: 6 }),
+  },
+  mainCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+  },
+  mainCardIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  mainCardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.9)",
+  },
+  mainCardValue: {
+    fontSize: 36,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 16,
+  },
+  mainCardSubRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  mainCardSubItem: {
+    flex: 1,
+  },
+  mainCardDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  mainCardSubLabel: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
+    marginBottom: 2,
+  },
+  mainCardSubValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  // Chart
+  chartCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: "#94A3B8",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    ...(Platform.OS === "android" && { elevation: 3 }),
+  },
+  chartContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    height: 140,
+    paddingTop: 8,
+  },
+  chartBarWrap: {
+    flex: 1,
+    alignItems: "center",
+    gap: 6,
+  },
+  chartBarContainer: {
+    height: 100,
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  chartBar: {
+    width: 16,
+    borderRadius: 8,
+    backgroundColor: "#DBEAFE",
+  },
+  chartBarCurrent: {
+    backgroundColor: "#2563EB",
+  },
+  chartLabel: {
+    fontSize: 10,
+    color: "#94A3B8",
+    fontWeight: "500",
+  },
+  chartLabelCurrent: {
+    color: "#2563EB",
+    fontWeight: "700",
+  },
+  // Month detail
+  detailRow: {
     flexDirection: "row",
     gap: 12,
     marginBottom: 12,
   },
-  statCard: {
+  detailCard: {
     flex: 1,
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
@@ -341,47 +615,48 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     ...(Platform.OS === "android" && { elevation: 3 }),
   },
-  statIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+  detailIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  statLabel: {
+  detailLabel: {
     fontSize: 13,
     color: "#64748B",
     marginBottom: 4,
   },
-  statValue: {
-    fontSize: 24,
+  detailValue: {
+    fontSize: 20,
     fontWeight: "800",
   },
-  totalCard: {
-    backgroundColor: "#2563EB",
+  monthTotalCard: {
+    backgroundColor: "#0F172A",
     borderRadius: 20,
     padding: 20,
-    shadowColor: "#2563EB",
+    shadowColor: "#0F172A",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 12,
     ...(Platform.OS === "android" && { elevation: 5 }),
   },
-  totalLabel: {
+  monthTotalLabel: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.7)",
     marginBottom: 4,
   },
-  totalSubLabel: {
+  monthTotalSub: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.6)",
+    color: "rgba(255,255,255,0.5)",
   },
-  totalValue: {
-    fontSize: 28,
+  monthTotalValue: {
+    fontSize: 24,
     fontWeight: "800",
     color: "#FFFFFF",
   },
+  // Reminder
   reminderCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -407,57 +682,48 @@ const styles = StyleSheet.create({
   },
   reminderDate: {
     fontSize: 12,
-    color: "#64748B",
+    color: "#94A3B8",
     marginTop: 2,
   },
   daysBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 9999,
-    backgroundColor: "rgba(37,99,235,0.1)",
-  },
-  daysBadgeUrgent: {
-    backgroundColor: "rgba(245,158,11,0.12)",
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "#F0F4F8",
   },
   daysBadgeOverdue: {
-    backgroundColor: "rgba(239,68,68,0.12)",
+    backgroundColor: "rgba(239,68,68,0.1)",
+  },
+  daysBadgeUrgent: {
+    backgroundColor: "rgba(245,158,11,0.1)",
   },
   daysText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#2563EB",
-  },
-  daysTextUrgent: {
-    color: "#F59E0B",
+    color: "#64748B",
   },
   daysTextOverdue: {
     color: "#EF4444",
   },
+  daysTextUrgent: {
+    color: "#F59E0B",
+  },
+  // Empty
   emptyCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 32,
     alignItems: "center",
     shadowColor: "#94A3B8",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowRadius: 12,
     ...(Platform.OS === "android" && { elevation: 2 }),
   },
   emptyText: {
     fontSize: 15,
-    color: "#64748B",
-    marginTop: 12,
-    fontWeight: "600",
-  },
-  emptySubText: {
-    fontSize: 13,
     color: "#94A3B8",
-    marginTop: 4,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    marginTop: 12,
+    fontWeight: "500",
   },
 });

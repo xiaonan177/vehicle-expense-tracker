@@ -70,6 +70,63 @@ router.get("/stats", async (req, res, next) => {
   }
 });
 
+// GET /api/v1/expenses/monthly-stats - Get monthly fuel stats for dashboard
+router.get("/monthly-stats", async (req, res, next) => {
+  try {
+    const { vehicle_id, year } = req.query;
+    const targetYear = year ? Number(year) : new Date().getFullYear();
+
+    let query = client
+      .from("expenses")
+      .select("id, type, amount, expense_date")
+      .gte("expense_date", `${targetYear}-01-01T00:00:00Z`)
+      .lt("expense_date", `${targetYear + 1}-01-01T00:00:00Z`);
+
+    if (vehicle_id) {
+      query = query.eq("vehicle_id", Number(vehicle_id));
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+
+    const expenses = data || [];
+    // Group by month
+    const monthlyData: Record<number, { fuel: number; maintenance: number; count: number }> = {};
+    for (let m = 1; m <= 12; m++) {
+      monthlyData[m] = { fuel: 0, maintenance: 0, count: 0 };
+    }
+
+    for (const exp of expenses) {
+      const month = new Date(exp.expense_date).getMonth() + 1;
+      const amount = Number(exp.amount);
+      if (exp.type === "fuel") monthlyData[month].fuel += amount;
+      else if (exp.type === "maintenance") monthlyData[month].maintenance += amount;
+      monthlyData[month].count += 1;
+    }
+
+    // Calculate yearly totals
+    let totalFuel = 0;
+    let totalMaintenance = 0;
+    let totalCount = 0;
+    for (const m of Object.values(monthlyData)) {
+      totalFuel += m.fuel;
+      totalMaintenance += m.maintenance;
+      totalCount += m.count;
+    }
+
+    res.json({
+      year: targetYear,
+      total_fuel: Math.round(totalFuel * 100) / 100,
+      total_maintenance: Math.round(totalMaintenance * 100) / 100,
+      total_amount: Math.round((totalFuel + totalMaintenance) * 100) / 100,
+      total_count: totalCount,
+      monthly: monthlyData,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/v1/expenses - Create an expense
 router.post("/", async (req, res, next) => {
   try {

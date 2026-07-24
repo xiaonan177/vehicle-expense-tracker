@@ -114,7 +114,7 @@ export default function ExpensesScreen() {
             </Text>
           </View>
           <Text style={[styles.amount, { color: config.color }]}>
-            ¥{Number(item.amount).toFixed(2)}
+            ฿{Number(item.amount).toFixed(2)}
           </Text>
         </View>
       </TouchableOpacity>
