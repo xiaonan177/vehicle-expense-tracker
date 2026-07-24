@@ -19,6 +19,9 @@ const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL;
 interface MonthlyData {
   fuel: number;
   maintenance: number;
+  purchase: number;
+  paperwork: number;
+  insurance_fee: number;
   count: number;
 }
 
@@ -26,6 +29,9 @@ interface MonthlyStats {
   year: number;
   total_fuel: number;
   total_maintenance: number;
+  total_purchase: number;
+  total_paperwork: number;
+  total_insurance_fee: number;
   total_amount: number;
   total_count: number;
   monthly: Record<number, MonthlyData>;
@@ -44,6 +50,9 @@ const MONTH_NAMES = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8�
 const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
   fuel: { label: "加油", color: "#F59E0B", bg: "rgba(245,158,11,0.12)", icon: "gas-pump" },
   maintenance: { label: "维修", color: "#2563EB", bg: "rgba(37,99,235,0.12)", icon: "wrench" },
+  purchase: { label: "购车", color: "#3B82F6", bg: "rgba(59,130,246,0.12)", icon: "car" },
+  paperwork: { label: "手续", color: "#8B5CF6", bg: "rgba(139,92,246,0.12)", icon: "file-lines" },
+  insurance_fee: { label: "保险费", color: "#10B981", bg: "rgba(16,185,129,0.12)", icon: "shield-halved" },
   insurance: { label: "保险", color: "#8B5CF6", bg: "rgba(139,92,246,0.12)", icon: "shield-halved" },
   inspection: { label: "年检", color: "#10B981", bg: "rgba(16,185,129,0.12)", icon: "clipboard-check" },
   other: { label: "其他", color: "#64748B", bg: "rgba(100,116,139,0.12)", icon: "ellipsis" },
@@ -101,10 +110,13 @@ export default function HomeScreen() {
     .slice(0, 4);
 
   // Get current view data
-  const currentMonthData = stats?.monthly?.[selectedMonth] || { fuel: 0, maintenance: 0, count: 0 };
+  const currentMonthData = stats?.monthly?.[selectedMonth] || { fuel: 0, maintenance: 0, purchase: 0, paperwork: 0, insurance_fee: 0, count: 0 };
   const displayFuel = viewMode === "year" ? (stats?.total_fuel || 0) : currentMonthData.fuel;
   const displayMaintenance = viewMode === "year" ? (stats?.total_maintenance || 0) : currentMonthData.maintenance;
-  const displayTotal = viewMode === "year" ? (stats?.total_amount || 0) : (currentMonthData.fuel + currentMonthData.maintenance);
+  const displayPurchase = viewMode === "year" ? (stats?.total_purchase || 0) : currentMonthData.purchase;
+  const displayPaperwork = viewMode === "year" ? (stats?.total_paperwork || 0) : currentMonthData.paperwork;
+  const displayInsuranceFee = viewMode === "year" ? (stats?.total_insurance_fee || 0) : currentMonthData.insurance_fee;
+  const displayTotal = viewMode === "year" ? (stats?.total_amount || 0) : (currentMonthData.fuel + currentMonthData.maintenance + currentMonthData.purchase + currentMonthData.paperwork + currentMonthData.insurance_fee);
   const displayCount = viewMode === "year" ? (stats?.total_count || 0) : currentMonthData.count;
 
   if (loading) {
@@ -197,22 +209,43 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Main Fuel Dashboard Card */}
+        {/* Main Expense Dashboard Card */}
         <View style={styles.section}>
           <View style={styles.mainCard}>
             <View style={styles.mainCardHeader}>
               <View style={styles.mainCardIconWrap}>
-                <FontAwesome6 name="gas-pump" size={22} color="#FFFFFF" />
+                <FontAwesome6 name="chart-pie" size={22} color="#FFFFFF" />
               </View>
               <Text style={styles.mainCardTitle}>
-                {viewMode === "year" ? `${selectedYear}年度加油` : `${selectedMonth}月加油`}
+                {viewMode === "year" ? `${selectedYear}年度总花费` : `${selectedMonth}月总花费`}
               </Text>
             </View>
-            <Text style={styles.mainCardValue}>{formatCurrency(displayFuel)}</Text>
+            <Text style={styles.mainCardValue}>{formatCurrency(displayTotal)}</Text>
             <View style={styles.mainCardSubRow}>
               <View style={styles.mainCardSubItem}>
-                <Text style={styles.mainCardSubLabel}>维修花费</Text>
+                <Text style={styles.mainCardSubLabel}>加油</Text>
+                <Text style={styles.mainCardSubValue}>{formatCurrency(displayFuel)}</Text>
+              </View>
+              <View style={styles.mainCardDivider} />
+              <View style={styles.mainCardSubItem}>
+                <Text style={styles.mainCardSubLabel}>维修</Text>
                 <Text style={styles.mainCardSubValue}>{formatCurrency(displayMaintenance)}</Text>
+              </View>
+              <View style={styles.mainCardDivider} />
+              <View style={styles.mainCardSubItem}>
+                <Text style={styles.mainCardSubLabel}>购车</Text>
+                <Text style={styles.mainCardSubValue}>{formatCurrency(displayPurchase)}</Text>
+              </View>
+            </View>
+            <View style={[styles.mainCardSubRow, { marginTop: 12 }]}>
+              <View style={styles.mainCardSubItem}>
+                <Text style={styles.mainCardSubLabel}>手续</Text>
+                <Text style={styles.mainCardSubValue}>{formatCurrency(displayPaperwork)}</Text>
+              </View>
+              <View style={styles.mainCardDivider} />
+              <View style={styles.mainCardSubItem}>
+                <Text style={styles.mainCardSubLabel}>保险费</Text>
+                <Text style={styles.mainCardSubValue}>{formatCurrency(displayInsuranceFee)}</Text>
               </View>
               <View style={styles.mainCardDivider} />
               <View style={styles.mainCardSubItem}>
@@ -226,15 +259,16 @@ export default function HomeScreen() {
         {/* Monthly Bar Chart (Year View) */}
         {viewMode === "year" && stats && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>月度加油趋势</Text>
+            <Text style={styles.sectionTitle}>月度花费趋势</Text>
             <View style={styles.chartCard}>
               {(() => {
-                const maxFuel = Math.max(...Object.values(stats.monthly).map((m) => m.fuel), 1);
+                const maxTotal = Math.max(...Object.values(stats.monthly).map((m) => m.fuel + m.maintenance + m.purchase + m.paperwork + m.insurance_fee), 1);
                 return (
                   <View style={styles.chartContainer}>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
                       const data = stats.monthly[m];
-                      const barHeight = Math.max((data.fuel / maxFuel) * 100, 4);
+                      const total = data.fuel + data.maintenance + data.purchase + data.paperwork + data.insurance_fee;
+                      const barHeight = Math.max((total / maxTotal) * 100, 4);
                       const isCurrentMonth = m === new Date().getMonth() + 1 && stats.year === new Date().getFullYear();
                       return (
                         <TouchableOpacity
@@ -289,6 +323,35 @@ export default function HomeScreen() {
                 <Text style={styles.detailLabel}>维修</Text>
                 <Text style={[styles.detailValue, { color: "#2563EB" }]}>
                   {formatCurrency(currentMonthData.maintenance)}
+                </Text>
+              </View>
+              <View style={styles.detailCard}>
+                <View style={[styles.detailIconWrap, { backgroundColor: "rgba(59,130,246,0.12)" }]}>
+                  <FontAwesome6 name="car" size={18} color="#3B82F6" />
+                </View>
+                <Text style={styles.detailLabel}>购车</Text>
+                <Text style={[styles.detailValue, { color: "#3B82F6" }]}>
+                  {formatCurrency(currentMonthData.purchase)}
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.detailRow, { marginTop: 12 }]}>
+              <View style={styles.detailCard}>
+                <View style={[styles.detailIconWrap, { backgroundColor: "rgba(139,92,246,0.12)" }]}>
+                  <FontAwesome6 name="file-lines" size={18} color="#8B5CF6" />
+                </View>
+                <Text style={styles.detailLabel}>手续</Text>
+                <Text style={[styles.detailValue, { color: "#8B5CF6" }]}>
+                  {formatCurrency(currentMonthData.paperwork)}
+                </Text>
+              </View>
+              <View style={styles.detailCard}>
+                <View style={[styles.detailIconWrap, { backgroundColor: "rgba(16,185,129,0.12)" }]}>
+                  <FontAwesome6 name="shield-halved" size={18} color="#10B981" />
+                </View>
+                <Text style={styles.detailLabel}>保险费</Text>
+                <Text style={[styles.detailValue, { color: "#10B981" }]}>
+                  {formatCurrency(currentMonthData.insurance_fee)}
                 </Text>
               </View>
             </View>

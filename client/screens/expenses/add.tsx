@@ -27,7 +27,7 @@ export default function AddExpenseScreen() {
   const router = useSafeRouter();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
-  const [type, setType] = useState<"fuel" | "maintenance">("fuel");
+  const [type, setType] = useState<"fuel" | "maintenance" | "purchase" | "paperwork" | "insurance_fee">("fuel");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [mileage, setMileage] = useState("");
@@ -135,6 +135,50 @@ export default function AddExpenseScreen() {
               />
               <Text style={[styles.typeBtnText, type === "maintenance" && styles.typeBtnTextActive]}>
                 维修
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.typeBtn, type === "purchase" && { backgroundColor: "#3B82F6" }]}
+              onPress={() => setType("purchase")}
+              activeOpacity={0.7}
+            >
+              <FontAwesome6
+                name="car"
+                size={18}
+                color={type === "purchase" ? "#FFFFFF" : "#3B82F6"}
+              />
+              <Text style={[styles.typeBtnText, type === "purchase" && styles.typeBtnTextActive]}>
+                购车
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.typeRow, { marginTop: 10 }]}>
+            <TouchableOpacity
+              style={[styles.typeBtn, type === "paperwork" && { backgroundColor: "#8B5CF6" }]}
+              onPress={() => setType("paperwork")}
+              activeOpacity={0.7}
+            >
+              <FontAwesome6
+                name="file-lines"
+                size={18}
+                color={type === "paperwork" ? "#FFFFFF" : "#8B5CF6"}
+              />
+              <Text style={[styles.typeBtnText, type === "paperwork" && styles.typeBtnTextActive]}>
+                手续
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.typeBtn, type === "insurance_fee" && { backgroundColor: "#10B981" }]}
+              onPress={() => setType("insurance_fee")}
+              activeOpacity={0.7}
+            >
+              <FontAwesome6
+                name="shield-halved"
+                size={18}
+                color={type === "insurance_fee" ? "#FFFFFF" : "#10B981"}
+              />
+              <Text style={[styles.typeBtnText, type === "insurance_fee" && styles.typeBtnTextActive]}>
+                保险
               </Text>
             </TouchableOpacity>
           </View>

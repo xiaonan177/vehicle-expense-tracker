@@ -37,6 +37,9 @@ interface Vehicle {
 const TYPE_MAP: Record<string, { label: string; color: string; bg: string; icon: string }> = {
   fuel: { label: "加油", color: "#F59E0B", bg: "rgba(245,158,11,0.12)", icon: "gas-pump" },
   maintenance: { label: "维修", color: "#2563EB", bg: "rgba(37,99,235,0.12)", icon: "wrench" },
+  purchase: { label: "购车", color: "#3B82F6", bg: "rgba(59,130,246,0.12)", icon: "car" },
+  paperwork: { label: "手续", color: "#8B5CF6", bg: "rgba(139,92,246,0.12)", icon: "file-lines" },
+  insurance_fee: { label: "保险费", color: "#10B981", bg: "rgba(16,185,129,0.12)", icon: "shield-halved" },
 };
 
 export default function ExpensesScreen() {

@@ -51,18 +51,27 @@ router.get("/stats", async (req, res, next) => {
     const expenses = data || [];
     let totalFuel = 0;
     let totalMaintenance = 0;
+    let totalPurchase = 0;
+    let totalPaperwork = 0;
+    let totalInsuranceFee = 0;
     let totalCount = expenses.length;
 
     for (const exp of expenses) {
       const amount = Number(exp.amount);
       if (exp.type === "fuel") totalFuel += amount;
       else if (exp.type === "maintenance") totalMaintenance += amount;
+      else if (exp.type === "purchase") totalPurchase += amount;
+      else if (exp.type === "paperwork") totalPaperwork += amount;
+      else if (exp.type === "insurance_fee") totalInsuranceFee += amount;
     }
 
     res.json({
       total_fuel: Math.round(totalFuel * 100) / 100,
       total_maintenance: Math.round(totalMaintenance * 100) / 100,
-      total_amount: Math.round((totalFuel + totalMaintenance) * 100) / 100,
+      total_purchase: Math.round(totalPurchase * 100) / 100,
+      total_paperwork: Math.round(totalPaperwork * 100) / 100,
+      total_insurance_fee: Math.round(totalInsuranceFee * 100) / 100,
+      total_amount: Math.round((totalFuel + totalMaintenance + totalPurchase + totalPaperwork + totalInsuranceFee) * 100) / 100,
       total_count: totalCount,
     });
   } catch (err) {
@@ -91,9 +100,9 @@ router.get("/monthly-stats", async (req, res, next) => {
 
     const expenses = data || [];
     // Group by month
-    const monthlyData: Record<number, { fuel: number; maintenance: number; count: number }> = {};
+    const monthlyData: Record<number, { fuel: number; maintenance: number; purchase: number; paperwork: number; insurance_fee: number; count: number }> = {};
     for (let m = 1; m <= 12; m++) {
-      monthlyData[m] = { fuel: 0, maintenance: 0, count: 0 };
+      monthlyData[m] = { fuel: 0, maintenance: 0, purchase: 0, paperwork: 0, insurance_fee: 0, count: 0 };
     }
 
     for (const exp of expenses) {
@@ -101,16 +110,25 @@ router.get("/monthly-stats", async (req, res, next) => {
       const amount = Number(exp.amount);
       if (exp.type === "fuel") monthlyData[month].fuel += amount;
       else if (exp.type === "maintenance") monthlyData[month].maintenance += amount;
+      else if (exp.type === "purchase") monthlyData[month].purchase += amount;
+      else if (exp.type === "paperwork") monthlyData[month].paperwork += amount;
+      else if (exp.type === "insurance_fee") monthlyData[month].insurance_fee += amount;
       monthlyData[month].count += 1;
     }
 
     // Calculate yearly totals
     let totalFuel = 0;
     let totalMaintenance = 0;
+    let totalPurchase = 0;
+    let totalPaperwork = 0;
+    let totalInsuranceFee = 0;
     let totalCount = 0;
     for (const m of Object.values(monthlyData)) {
       totalFuel += m.fuel;
       totalMaintenance += m.maintenance;
+      totalPurchase += m.purchase;
+      totalPaperwork += m.paperwork;
+      totalInsuranceFee += m.insurance_fee;
       totalCount += m.count;
     }
 
@@ -118,7 +136,10 @@ router.get("/monthly-stats", async (req, res, next) => {
       year: targetYear,
       total_fuel: Math.round(totalFuel * 100) / 100,
       total_maintenance: Math.round(totalMaintenance * 100) / 100,
-      total_amount: Math.round((totalFuel + totalMaintenance) * 100) / 100,
+      total_purchase: Math.round(totalPurchase * 100) / 100,
+      total_paperwork: Math.round(totalPaperwork * 100) / 100,
+      total_insurance_fee: Math.round(totalInsuranceFee * 100) / 100,
+      total_amount: Math.round((totalFuel + totalMaintenance + totalPurchase + totalPaperwork + totalInsuranceFee) * 100) / 100,
       total_count: totalCount,
       monthly: monthlyData,
     });
