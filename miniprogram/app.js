@@ -2,7 +2,7 @@
 App({
   globalData: {
     // 后端 API 地址，部署时替换为实际域名
-    baseUrl: 'https://your-domain.com/api/v1',
+    baseUrl: 'https://vehicle-expense-tracker-server-fu93.vercel.app/api/v1',
     // 车辆 ID，实际使用时从后端获取
     vehicleId: 1
   },
