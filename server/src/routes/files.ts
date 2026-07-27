@@ -1,18 +1,24 @@
 import { Router } from "express";
 import multer from "multer";
-import { S3Storage } from "coze-coding-dev-sdk";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSupabaseClient } from "../storage/database/supabase-client.js";
 
 const router = Router();
 const client = getSupabaseClient();
 
-const storage = new S3Storage({
-  endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
-  accessKey: "",
-  secretKey: "",
-  bucketName: process.env.COZE_BUCKET_NAME,
-  region: "cn-beijing",
+const s3Client = new S3Client({
+  endpoint: process.env.COZE_BUCKET_ENDPOINT_URL,
+  region: process.env.S3_REGION || "cn-beijing",
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY || "dummy",
+    secretAccessKey: process.env.S3_SECRET_KEY || "dummy",
+  },
+  forcePathStyle: true,
 });
+
+const BUCKET_NAME = process.env.COZE_BUCKET_NAME || "";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -43,10 +49,11 @@ router.get("/", async (req, res, next) => {
     const filesWithUrls = await Promise.all(
       (data || []).map(async (file) => {
         try {
-          const url = await storage.generatePresignedUrl({
-            key: file.file_key,
-            expireTime: 86400,
+          const command = new GetObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: file.file_key,
           });
+          const url = await getSignedUrl(s3Client, command, { expiresIn: 86400 });
           return { ...file, url };
         } catch {
           return { ...file, url: null };
@@ -70,13 +77,16 @@ router.post("/upload", upload.single("file"), async (req, res, next) => {
     }
 
     const { buffer, originalname, mimetype, size } = req.file;
+    const fileKey = `vehicle-files/${Date.now()}-${originalname}`;
 
     // Upload to S3
-    const fileKey = await storage.uploadFile({
-      fileContent: buffer,
-      fileName: `vehicle-files/${originalname}`,
-      contentType: mimetype,
+    const putCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: fileKey,
+      Body: buffer,
+      ContentType: mimetype,
     });
+    await s3Client.send(putCommand);
 
     // Save record to database
     const { data, error } = await client
@@ -94,10 +104,11 @@ router.post("/upload", upload.single("file"), async (req, res, next) => {
     if (error) throw new Error(error.message);
 
     // Generate presigned URL
-    const url = await storage.generatePresignedUrl({
-      key: fileKey,
-      expireTime: 86400,
+    const getCommand = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: fileKey,
     });
+    const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 86400 });
 
     res.status(201).json({ ...data, url });
   } catch (err) {
@@ -120,10 +131,11 @@ router.get("/:id/url", async (req, res, next) => {
       return;
     }
 
-    const url = await storage.generatePresignedUrl({
-      key: data.file_key,
-      expireTime: 86400,
+    const command = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: data.file_key,
     });
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 86400 });
     res.json({ url });
   } catch (err) {
     next(err);
@@ -147,7 +159,11 @@ router.delete("/:id", async (req, res, next) => {
 
     // Delete from S3
     try {
-      await storage.deleteFile({ fileKey: file.file_key });
+      const deleteCommand = new DeleteObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: file.file_key,
+      });
+      await s3Client.send(deleteCommand);
     } catch {
       // Continue even if S3 delete fails
     }
@@ -158,7 +174,8 @@ router.delete("/:id", async (req, res, next) => {
       .delete()
       .eq("id", Number(id));
     if (error) throw new Error(error.message);
-    res.json({ success: true });
+
+    res.json({ message: "文件已删除" });
   } catch (err) {
     next(err);
   }
