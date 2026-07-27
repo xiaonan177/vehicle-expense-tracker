@@ -1,11 +1,12 @@
 import { Router } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { getSupabaseClient } from "../storage/database/supabase-client.js";
 
 const router = Router();
 const client = getSupabaseClient();
 
 // GET /api/v1/expenses - List expenses (with optional vehicle_id & type filter)
-router.get("/", async (req, res, next) => {
+router.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { vehicle_id, type, limit: limitStr, offset: offsetStr } = req.query;
     const limit = limitStr ? Number(limitStr) : 50;
@@ -33,7 +34,7 @@ router.get("/", async (req, res, next) => {
 });
 
 // GET /api/v1/expenses/stats - Get expense statistics
-router.get("/stats", async (req, res, next) => {
+router.get("/stats", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { vehicle_id } = req.query;
 
@@ -80,7 +81,7 @@ router.get("/stats", async (req, res, next) => {
 });
 
 // GET /api/v1/expenses/monthly-stats - Get monthly fuel stats for dashboard
-router.get("/monthly-stats", async (req, res, next) => {
+router.get("/monthly-stats", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { vehicle_id, year } = req.query;
     const targetYear = year ? Number(year) : new Date().getFullYear();
@@ -149,7 +150,7 @@ router.get("/monthly-stats", async (req, res, next) => {
 });
 
 // POST /api/v1/expenses - Create an expense
-router.post("/", async (req, res, next) => {
+router.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { vehicle_id, type, amount, description, mileage, attachment_key, attachment_name, expense_date } = req.body;
     if (!vehicle_id || !type || !amount || !expense_date) {
@@ -169,7 +170,7 @@ router.post("/", async (req, res, next) => {
 });
 
 // GET /api/v1/expenses/:id - Get a single expense
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { data, error } = await client
@@ -189,7 +190,7 @@ router.get("/:id", async (req, res, next) => {
 });
 
 // PUT /api/v1/expenses/:id - Update an expense
-router.put("/:id", async (req, res, next) => {
+router.put("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { type, amount, description, mileage, attachment_key, attachment_name, expense_date } = req.body;
@@ -216,7 +217,7 @@ router.put("/:id", async (req, res, next) => {
 });
 
 // DELETE /api/v1/expenses/:id - Delete an expense
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { error } = await client

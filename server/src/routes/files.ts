@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Request, Response, NextFunction } from "express";
 import multer from "multer";
 import { getSupabaseClient } from "../storage/database/supabase-client.js";
 
@@ -43,7 +44,7 @@ async function deleteFromS3(fileKey: string): Promise<void> {
 }
 
 // GET /api/v1/files - List files (optional vehicle_id & category filter)
-router.get("/", async (req, res, next) => {
+router.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { vehicle_id, category } = req.query;
 
@@ -75,7 +76,7 @@ router.get("/", async (req, res, next) => {
 });
 
 // POST /api/v1/files/upload - Upload a file
-router.post("/upload", upload.single("file"), async (req, res, next) => {
+router.post("/upload", upload.single("file"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { vehicle_id, category } = req.body;
     if (!vehicle_id || !req.file) {
@@ -111,7 +112,7 @@ router.post("/upload", upload.single("file"), async (req, res, next) => {
 });
 
 // GET /api/v1/files/:id/url - Get URL for a file
-router.get("/:id/url", async (req, res, next) => {
+router.get("/:id/url", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { data, error } = await client
@@ -132,7 +133,7 @@ router.get("/:id/url", async (req, res, next) => {
 });
 
 // DELETE /api/v1/files/:id - Delete a file
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { data: file, error: fetchError } = await client

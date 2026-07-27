@@ -1,11 +1,12 @@
 import { Router } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { getSupabaseClient } from "../storage/database/supabase-client.js";
 
 const router = Router();
 const client = getSupabaseClient();
 
 // GET /api/v1/reminders - List reminders (optional vehicle_id, type, is_completed filter)
-router.get("/", async (req, res, next) => {
+router.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { vehicle_id, type, is_completed } = req.query;
 
@@ -33,7 +34,7 @@ router.get("/", async (req, res, next) => {
 });
 
 // POST /api/v1/reminders - Create a reminder
-router.post("/", async (req, res, next) => {
+router.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { vehicle_id, type, title, due_date, notes } = req.body;
     if (!vehicle_id || !type || !title || !due_date) {
@@ -53,7 +54,7 @@ router.post("/", async (req, res, next) => {
 });
 
 // PUT /api/v1/reminders/:id - Update a reminder
-router.put("/:id", async (req, res, next) => {
+router.put("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { type, title, due_date, notes, is_completed } = req.body;
@@ -78,7 +79,7 @@ router.put("/:id", async (req, res, next) => {
 });
 
 // DELETE /api/v1/reminders/:id - Delete a reminder
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { error } = await client

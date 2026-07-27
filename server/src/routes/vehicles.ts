@@ -1,11 +1,12 @@
 import { Router } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { getSupabaseClient } from "../storage/database/supabase-client.js";
 
 const router = Router();
 const client = getSupabaseClient();
 
 // GET /api/v1/vehicles - List all vehicles
-router.get("/", async (_req, res, next) => {
+router.get("/", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await client
       .from("vehicles")
@@ -19,7 +20,7 @@ router.get("/", async (_req, res, next) => {
 });
 
 // POST /api/v1/vehicles - Create a vehicle
-router.post("/", async (req, res, next) => {
+router.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, plate_number, brand, model, year } = req.body;
     if (!name) {
@@ -39,7 +40,7 @@ router.post("/", async (req, res, next) => {
 });
 
 // GET /api/v1/vehicles/:id - Get a single vehicle
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { data, error } = await client
@@ -59,7 +60,7 @@ router.get("/:id", async (req, res, next) => {
 });
 
 // PUT /api/v1/vehicles/:id - Update a vehicle
-router.put("/:id", async (req, res, next) => {
+router.put("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { name, plate_number, brand, model, year } = req.body;
@@ -84,7 +85,7 @@ router.put("/:id", async (req, res, next) => {
 });
 
 // DELETE /api/v1/vehicles/:id - Delete a vehicle
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { error } = await client
