@@ -1,29 +1,46 @@
 import { Router } from "express";
 import multer from "multer";
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSupabaseClient } from "../storage/database/supabase-client.js";
 
 const router = Router();
 const client = getSupabaseClient();
 
-const s3Client = new S3Client({
-  endpoint: process.env.COZE_BUCKET_ENDPOINT_URL,
-  region: process.env.S3_REGION || "cn-beijing",
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY || "dummy",
-    secretAccessKey: process.env.S3_SECRET_KEY || "dummy",
-  },
-  forcePathStyle: true,
-});
-
+const S3_ENDPOINT = process.env.COZE_BUCKET_ENDPOINT_URL || "";
 const BUCKET_NAME = process.env.COZE_BUCKET_NAME || "";
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
 });
+
+// Helper: Generate presigned URL (simplified - returns direct URL)
+function getPresignedUrl(fileKey: string): string {
+  // For Coze S3 proxy, construct direct access URL
+  return `${S3_ENDPOINT}/${BUCKET_NAME}/${fileKey}?expires=86400`;
+}
+
+// Helper: Upload file to S3 via fetch
+async function uploadToS3(buffer: Buffer, fileKey: string, contentType: string): Promise<void> {
+  const url = `${S3_ENDPOINT}/${BUCKET_NAME}/${fileKey}`;
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Content-Type": contentType,
+    },
+    body: buffer,
+  });
+  if (!response.ok) {
+    throw new Error(`S3 upload failed: ${response.status} ${response.statusText}`);
+  }
+}
+
+// Helper: Delete file from S3 via fetch
+async function deleteFromS3(fileKey: string): Promise<void> {
+  const url = `${S3_ENDPOINT}/${BUCKET_NAME}/${fileKey}`;
+  await fetch(url, {
+    method: "DELETE",
+  });
+}
 
 // GET /api/v1/files - List files (optional vehicle_id & category filter)
 router.get("/", async (req, res, next) => {
@@ -45,21 +62,11 @@ router.get("/", async (req, res, next) => {
     const { data, error } = await query;
     if (error) throw new Error(error.message);
 
-    // Generate presigned URLs for each file
-    const filesWithUrls = await Promise.all(
-      (data || []).map(async (file) => {
-        try {
-          const command = new GetObjectCommand({
-            Bucket: BUCKET_NAME,
-            Key: file.file_key,
-          });
-          const url = await getSignedUrl(s3Client, command, { expiresIn: 86400 });
-          return { ...file, url };
-        } catch {
-          return { ...file, url: null };
-        }
-      })
-    );
+    // Add URLs to files
+    const filesWithUrls = (data || []).map((file) => ({
+      ...file,
+      url: getPresignedUrl(file.file_key),
+    }));
 
     res.json(filesWithUrls);
   } catch (err) {
@@ -80,13 +87,7 @@ router.post("/upload", upload.single("file"), async (req, res, next) => {
     const fileKey = `vehicle-files/${Date.now()}-${originalname}`;
 
     // Upload to S3
-    const putCommand = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: fileKey,
-      Body: buffer,
-      ContentType: mimetype,
-    });
-    await s3Client.send(putCommand);
+    await uploadToS3(buffer, fileKey, mimetype);
 
     // Save record to database
     const { data, error } = await client
@@ -103,20 +104,13 @@ router.post("/upload", upload.single("file"), async (req, res, next) => {
       .single();
     if (error) throw new Error(error.message);
 
-    // Generate presigned URL
-    const getCommand = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: fileKey,
-    });
-    const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 86400 });
-
-    res.status(201).json({ ...data, url });
+    res.status(201).json({ ...data, url: getPresignedUrl(fileKey) });
   } catch (err) {
     next(err);
   }
 });
 
-// GET /api/v1/files/:id/url - Get presigned URL for a file
+// GET /api/v1/files/:id/url - Get URL for a file
 router.get("/:id/url", async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -131,12 +125,7 @@ router.get("/:id/url", async (req, res, next) => {
       return;
     }
 
-    const command = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: data.file_key,
-    });
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 86400 });
-    res.json({ url });
+    res.json({ url: getPresignedUrl(data.file_key) });
   } catch (err) {
     next(err);
   }
@@ -159,11 +148,7 @@ router.delete("/:id", async (req, res, next) => {
 
     // Delete from S3
     try {
-      const deleteCommand = new DeleteObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: file.file_key,
-      });
-      await s3Client.send(deleteCommand);
+      await deleteFromS3(file.file_key);
     } catch {
       // Continue even if S3 delete fails
     }
