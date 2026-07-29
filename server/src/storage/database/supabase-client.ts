@@ -1,14 +1,24 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+let cachedClient: SupabaseClient | null = null;
+
 function getSupabaseClient(token?: string): SupabaseClient {
+  if (cachedClient && !token) {
+    return cachedClient;
+  }
+
   const url = process.env.COZE_SUPABASE_URL;
   const anonKey = process.env.COZE_SUPABASE_ANON_KEY;
 
-  if (!url) {
-    throw new Error('COZE_SUPABASE_URL is not set');
-  }
-  if (!anonKey) {
-    throw new Error('COZE_SUPABASE_ANON_KEY is not set');
+  if (!url || !anonKey) {
+    // Return a dummy client that will throw when used
+    // This prevents crash at module load time
+    return createClient('https://dummy.supabase.co', 'dummy-key', {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
   }
 
   let key = anonKey;
@@ -22,7 +32,7 @@ function getSupabaseClient(token?: string): SupabaseClient {
     globalOptions.headers = { Authorization: `Bearer ${token}` };
   }
 
-  return createClient(url, key, {
+  const client = createClient(url, key, {
     global: globalOptions,
     db: {
       timeout: 60000,
@@ -32,6 +42,12 @@ function getSupabaseClient(token?: string): SupabaseClient {
       persistSession: false,
     },
   });
+
+  if (!token) {
+    cachedClient = client;
+  }
+
+  return client;
 }
 
 export { getSupabaseClient };
